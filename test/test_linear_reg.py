@@ -11,4 +11,4 @@ model.fit(X,y)
 
 print("Weights set: ", model.weights)
 print("Bias set: ", model.bias)
-print("Weights set: ", model.predict([[6]])) # Expecting 12
+print("Predicted Value: ", model.predict([[6]])) # Expecting 12

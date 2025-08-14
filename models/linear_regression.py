@@ -17,7 +17,7 @@ class LinearRegression:
         n_samples = len(X)
         n_features = len(X[0])
         
-        self.weight = 0.0 * n_features
+        self.weights = [0.0] * n_features
         self.bias = 0.0
 
         for _ in range(self.epochs):
