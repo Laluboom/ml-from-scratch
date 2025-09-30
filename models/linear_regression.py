@@ -5,6 +5,14 @@
 # learning rate factors -> a = 0.01 to 0.1 for same order of magnitute scaling between features and low-dimensional dataset, Used when features are normalised and have not too many or too less datapoints for learning. Small datasets(100) prefer 0.001 to 0.0001 while larger(50,000) ones use 0.01 to 0.1. Always proportionally increase the learning rate to the batch size(samples of dataset taken before parameters are updated). monitor loss curve: divergent and unstable loss curve - decrease alpha, crawling and still loss curve - increase alpha
 
 from ml_math import CPP_vector
+import logging
+
+logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        filename="test/LinearReg_debug.log",
+        filemode="w"
+        )
 
 class LinearRegression:
     def __init__(self, learning_rate=0.01, epochs=1000):
@@ -15,23 +23,33 @@ class LinearRegression:
 
     def fit(self, X, y):
         n_samples = len(X)
-        n_features = len(X[0])
-        
+        try:        
+            n_features = len(X[0])
+        except TypeError as e:
+            n_features = 1
+            print("Recieved TypeError due to python not being able to recognize all features in input value X using len(X[0]). Assumed 1 feature for the model prediction")
         self.weights = [0.0] * n_features
         self.bias = 0.0
 
-        for _ in range(self.epochs):
+        for epoch in range(self.epochs):
             dw = [0.0] * n_features
             db = 0.0
 
+            logging.debug(f"Epoch {epoch}")
+
             for i in range(n_samples):
+                logging.debug(f"Weights: {self.weights}")
+                logging.debug(f"X[{i}]: {X[i]}")
+                logging.debug(f"Bias: {self.bias}")
+
                 y_pred = CPP_vector.dot(self.weights, X[i]) + self.bias
+                logging.debug(f"y_pred: {y_pred}")
                 error = y[i] - y_pred
 
                 for j in range(n_features):
                     dw[j] += -2 * X[i][j] * error
                 db += -2 * error
-            
+
             for j in range(n_features):
                 self.weights[j] -= self.lr * (dw[j] / n_samples)
             self.bias -= self.lr * (db / n_samples)
