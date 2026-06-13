@@ -1,4 +1,2 @@
-
-
-yfinance
-pandas
+# No external Python packages are required.
+# This project uses Python 3 stdlib plus a local GCC-built shared library.

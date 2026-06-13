@@ -1,6 +1,6 @@
 # Reference — ml-from-scratch
 
-_Last refreshed: 2026-05-30_
+_Last refreshed: 2026-06-13_
 
 ## Purpose
 Educational ML library built in three layers: a high-performance C++ backend for linear algebra and distance metrics, a Python ctypes bridge, and a model layer implementing Linear Regression, Logistic Regression, and K-Nearest Neighbours. All heavy computation is offloaded to compiled C++.
@@ -46,4 +46,4 @@ make clean
 - `test_logistic_reg.py` — binary predictions `[0, 1]` correct
 - `test_knn.py` — predictions `[0, 1]` correct
 
-**Stale `requirements.txt`:** lists `yfinance` and `pandas`, but neither is imported anywhere in the source. The project has no external Python dependencies in practice.
+`requirements.txt` now documents that the project has no external Python package dependencies. The real prerequisites are Python 3 stdlib, GCC, and the local `libvector.so` build step.
