@@ -1,49 +1,61 @@
 # Reference — ml-from-scratch
 
-_Last refreshed: 2026-06-13_
+_Last refreshed: 2026-09-18_
 
 ## Purpose
-Educational ML library built in three layers: a high-performance C++ backend for linear algebra and distance metrics, a Python ctypes bridge, and a model layer implementing Linear Regression, Logistic Regression, and K-Nearest Neighbours. All heavy computation is offloaded to compiled C++.
+Educational ML library in three layers: a C++ backend for linear algebra and distance metrics, a
+Python `ctypes` bridge, and a model layer (Linear Regression, Logistic Regression, KNN). All heavy
+arithmetic is offloaded to compiled C++. No external Python packages.
 
 ## Stack
-- C++ (GCC, compiled to shared library `libvector.so`)
-- Python 3, `ctypes` (bridge to C++ backend)
-- Make (build + test automation)
+- C++ (GCC, `-O3 -Wall -fPIC -shared` → `cpp/libvector.so`)
+- Python 3 stdlib only, `ctypes` bridge
+- Make for build + test
 
 ## Entry Points
 ```bash
-# Compile C++ shared library (only needed once, or after editing cpp/)
-make
-
-# Run full test suite (compiles first if needed)
-make test
-
-# Remove compiled library
-make clean
+make          # compile cpp/libvector.so
+make test     # BROKEN — see Current State
+make clean    # remove the .so
 ```
 
 ## Key Files
 | File | Role |
 |------|------|
-| `cpp/vector_math.cpp` | C++ source — dot product, matrix-vector multiply, Euclidean distance, vector add, scalar multiply |
-| `cpp/libvector.so` | Compiled shared library — loaded at runtime by the Python bridge |
-| `ml_math/CPP_vector.py` | ctypes bridge — loads `libvector.so`, exposes C++ functions to Python |
-| `ml_math/utils.py` | Python utilities — sigmoid, min-max scaling, standard scaling |
-| `models/base.py` | `BaseModel` abstract interface — `fit()` and `predict()` contract |
-| `models/linear_regression.py` | Gradient descent regression using C++ dot product + mat-vec multiply |
-| `models/logistic_regression.py` | Binary classifier using C++ ops + Python sigmoid |
-| `models/knn.py` | K-Nearest Neighbours using C++ Euclidean distance |
-| `test/` | 6 test scripts — math vectors, matrix math, vectorisation, linear reg, logistic reg, KNN |
-| `Makefile` | Builds `.so`, runs all 6 test scripts sequentially |
+| `cpp/vector_math.cpp` | dot, add, scalar multiply, matrix-vector multiply, Euclidean distance |
+| `cpp/libvector.so` | compiled library — **committed to git**, arch-specific, drifts from source |
+| `ml_math/CPP_vector.py` | ctypes wrappers; no `__init__.py`, works as a namespace package |
+| `ml_math/utils.py` | sigmoid, min-max scaler, standard scaler (nothing currently calls the scalers) |
+| `models/base.py` | `BaseModel` ABC — `fit()` / `predict()` |
+| `models/linear_regression.py` | gradient-descent MSE regression |
+| `models/logistic_regression.py` | binary classifier, `predict_proba` + `predict` |
+| `models/knn.py` | majority-vote KNN over C++ Euclidean distance |
+| `Makefile` | builds the `.so`; `test` target references files that do not exist |
 
-## Run Status (2026-05-30)
-`make` reported "Nothing to be done" — `libvector.so` was already compiled and up-to-date.
+## Current State (verified 2026-09-18)
 
-`make test` ran all 5 test scripts and passed:
-- `test_math_vectors.py` — dot product, addition, scalar multiply: correct
-- `test_matrix_math.py` — matrix-vector multiply `[[1,2],[3,4],[5,6]] · [1,1]` → `[3,7,11]`: correct
-- `test_linear_reg.py` — fit 0.12s, weights `[2.004]`, bias `0.986`, predictions within 0.01 of true values
-- `test_logistic_reg.py` — binary predictions `[0, 1]` correct
-- `test_knn.py` — predictions `[0, 1]` correct
+**The package does not import.** `models/linear_regression.py:10` runs
+`logging.basicConfig(filename="test/LinearReg_debug.log")` at import time; `test/` does not exist,
+so `import models` raises `FileNotFoundError`. `models/__init__.py` pulls in that module, so every
+model is affected. This is a one-import-line fix and it blocks everything else.
 
-`requirements.txt` now documents that the project has no external Python package dependencies. The real prerequisites are Python 3 stdlib, GCC, and the local `libvector.so` build step.
+**There are no tests in the repository.** `.gitignore:27` ignores `test/`, `git ls-files` lists no
+test files, and the directory is absent from disk. `make test` invokes five scripts that do not
+exist. The previous version of this file reported a passing `make test` run with per-test results —
+that was not reproducible against the tracked tree and has been removed.
+
+**Two confirmed correctness bugs** beyond the import failure:
+- `CPP_vector.matrix_vector_multiply` does not check the vector length against the matrix column
+  count; C++ reads past the end of the buffer and returns nondeterministic garbage. Reachable from
+  `predict()` on either regression model.
+- `dot` / `add` / `euclidean_distance` size their buffers from the first argument only and silently
+  zero-pad a shorter second argument, so KNN answers dimension-mismatched queries without error.
+
+`ml_math/utils.py:8` `sigmoid` also raises `OverflowError` below about `x = -710`.
+
+Full detail, with reproductions, in `todo.md`.
+
+## Activity
+Last substantive code commit was `a75feb6` (2026-03-28), which added KNN, logistic regression, the
+scalers, and the `BaseModel` interface. Everything since has been scaffold and notes churn. The
+architecture is sound and the C++ layer is correct; the Python boundary around it is what needs work.

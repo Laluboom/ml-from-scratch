@@ -1,34 +1,43 @@
 {
-  "date": "2026-06-13",
-  "selected_by": "random choice from eligible Vellai projects after skip rules",
-  "run_attempted": true,
-  "run_succeeded": true,
-  "run_status": "Completed TODO item 1 by replacing the stale dependency list with an explicit no-external-packages note and refreshing the tracked project notes.",
-  "chosen_todo_item": "todo.md item 1 \u2014 fix requirements.txt",
+  "date": "2026-09-18",
+  "tier": "01_active_projects",
+  "selected_by": "daily routine, weighted random",
   "files_inspected": [
+    "README.md",
     "reference.md",
     "todo.md",
     "last_run.json",
-    "requirements.txt"
-  ],
-  "files_changed": [
     "requirements.txt",
-    "reference.md",
-    "todo.md",
-    "last_run.json"
+    "Makefile",
+    ".gitignore",
+    "cpp/vector_math.cpp",
+    "ml_math/CPP_vector.py",
+    "ml_math/utils.py",
+    "models/__init__.py",
+    "models/base.py",
+    "models/linear_regression.py",
+    "models/logistic_regression.py",
+    "models/knn.py"
   ],
-  "verification": [
-    {
-      "command": "python3 - <<'PY' ... verify requirements.txt content, todo renumbering, reference refresh, and JSON validity ... PY",
-      "passed": true,
-      "result": "PASS: requirements note, TODO renumbering, reference refresh, and last_run.json parsing all succeeded."
-    }
-  ],
-  "git": "None in this job; git is deferred to the sync job.",
   "issues_confirmed": [
-    "The project still uses a local GCC-built shared library and Python 3 stdlib rather than pip-installed runtime dependencies",
-    "Pytest is still not wired into the test flow; Makefile continues to run test scripts individually"
+    "models/linear_regression.py:10-15 - logging.basicConfig(filename='test/LinearReg_debug.log') runs at import time; test/ does not exist, so `import models` raises FileNotFoundError. models/__init__.py:4 imports this module, so every model is unimportable. Reproduced from the repo root.",
+    ".gitignore:27 - test/ is gitignored. `git ls-files` returns zero test files and the directory is absent from disk, yet Makefile:21-25 invokes five test scripts. `make test`, the command README.md:57 documents, cannot succeed for anyone.",
+    "ml_math/CPP_vector.py:40-55 - matrix_vector_multiply sizes vec_arr from len(vec) but vector_math.cpp:25 loops j < cols where cols = len(matrix[0]); when len(vec) < cols the C++ reads past the end of the ctypes buffer. Observed matrix_vector_multiply([[0,0,1],[0,0,2]], [0.0]) returning [8.3214395e-317, 1.6642879e-316], varying per call. Reachable via LinearRegression.predict / LogisticRegression.predict, neither of which checks X's column count against len(self.weights).",
+    "ml_math/CPP_vector.py:18-31 and :57-64 - dot, add and euclidean_distance set size = len(a) and build the b buffer as (c_double * size)(*b), silently zero-padding a shorter b. euclidean_distance([3,4,99],[0,0]) returns 99.126. KNN._predict_single (models/knn.py:31) therefore answers a 3-D query against 2-D training data with a confident label and no error (distances [15.588, 9.11], label 1). A longer b instead raises a bare 'IndexError: invalid index' from inside ctypes.",
+    "ml_math/utils.py:8 - sigmoid uses 1/(1+math.exp(-x)) and raises OverflowError for x <= about -710 (sigmoid(-700) = 9.86e-305, sigmoid(-710) throws). Reachable from LogisticRegression.fit at logistic_regression.py:26 with unscaled features.",
+    "models/linear_regression.py:25-29 - the TypeError fallback is dead code. For 1-D X it prints a recovery message and sets n_features = 1, then crashes at :41 anyway because matrix_vector_multiply also calls len(matrix[0]). Verified: prints the message, then 'TypeError: object of type float has no len()'.",
+    "models/linear_regression.py:38 and :45-47 - three logging.debug calls inside the per-sample loop, so a 1000-epoch fit over 1000 samples emits over 3M eagerly-formatted records.",
+    "reference.md (previous revision) lines 39-47 claimed a passing `make test` run listing test_linear_reg.py results, but the Makefile never invokes that script and no test files are tracked; the same file said '6 test scripts' at line 36 and 'all 5' at line 42.",
+    "cpp/libvector.so is tracked in git - an architecture-specific compiled binary committed alongside its source, with no signal when the two diverge."
   ],
-  "next_review": "2026-06-20",
-  "notes": "This was a content-only maintenance pass. No source-code behavior changed and no project-wide test run was repeated."
+  "browser_checked": false,
+  "proposed_tasks": [
+    "[QUICK WIN ~15min] Remove the module-level logging.basicConfig from models/linear_regression.py:10-15 so the package imports at all; use logging.getLogger(__name__) and let callers attach handlers.",
+    "[BUG] Add explicit dimension checks to the five ml_math/CPP_vector.py wrappers, raising ValueError with both lengths, to close the out-of-bounds read in matrix_vector_multiply and the silent zero-padding in dot/add/euclidean_distance.",
+    "[TEST] Un-ignore test/ in .gitignore:27, recreate and commit the suite, and replace the five hand-listed Makefile lines with `pytest test/`. First test to write: multi-feature LinearRegression fit-then-predict with a mismatched prediction column count.",
+    "[BUG] Replace ml_math/utils.py:8 sigmoid with the numerically stable branched form so it saturates instead of raising OverflowError during logistic regression training.",
+    "[DESIGN] In models/linear_regression.py, either make the :25-29 1-D fallback real (normalise X to [[x] for x in X]) or drop it for a clear ValueError, and lift the per-sample logging.debug calls out of the training loop."
+  ],
+  "verdict": "Sound architecture, currently non-functional: the package cannot be imported, has zero tracked tests, and its Python-to-C++ boundary does no dimension validation - a day of focused work would make it genuinely good.",
+  "next_review": "2026-09-28"
 }
