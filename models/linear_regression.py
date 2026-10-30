@@ -7,12 +7,7 @@ from ml_math import CPP_vector
 from .base import BaseModel
 import logging
 
-logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        filename="test/LinearReg_debug.log",
-        filemode="w"
-        )
+logger = logging.getLogger(__name__)
 
 class LinearRegression(BaseModel):
     def __init__(self, learning_rate=0.01, epochs=1000):
@@ -35,16 +30,16 @@ class LinearRegression(BaseModel):
             dw = [0.0] * n_features
             db = 0.0
 
-            logging.debug(f"Epoch {epoch}")
+            logger.debug(f"Epoch {epoch}")
 
             # Vectorized prediction for all samples
             y_preds = CPP_vector.matrix_vector_multiply(X, self.weights)
             y_preds = [yp + self.bias for yp in y_preds]
 
             for i in range(n_samples):
-                logging.debug(f"Weights: {self.weights}")
-                logging.debug(f"X[{i}]: {X[i]}")
-                logging.debug(f"Bias: {self.bias}")
+                logger.debug(f"Weights: {self.weights}")
+                logger.debug(f"X[{i}]: {X[i]}")
+                logger.debug(f"Bias: {self.bias}")
 
                 error = y[i] - y_preds[i]
 
