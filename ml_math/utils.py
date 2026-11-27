@@ -7,6 +7,14 @@ def sigmoid(x):
     """
     return 1 / (1 + math.exp(-x))
 
+def mse(y_true, y_pred):
+    """
+    Mean Squared Error between true and predicted values.
+    Formula: mean((y_true - y_pred) ** 2)
+    """
+    n = len(y_true)
+    return sum((y_true[i] - y_pred[i]) * (y_true[i] - y_pred[i]) for i in range(n)) / n
+
 def min_max_scaler(data):
     """
     Scales data to a range between 0 and 1.
