@@ -13,7 +13,7 @@ Ranked. Everything below was re-run against the code on 2026-11-27.
 
 ---
 
-### 1. `[BUG]` `fit()` silently returns NaN weights — make the loss observable
+### 1. `[DONE 2026-11-27]` `fit()` silently returns NaN weights — make the loss observable
 
 **Neither model can be trained on raw unscaled data, and the linear one does not tell you.** Four
 rows, two features on ordinary real-world scales (a count and a salary):
